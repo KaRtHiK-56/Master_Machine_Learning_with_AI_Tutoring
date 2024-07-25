@@ -2,8 +2,7 @@
 from langchain.prompts import PromptTemplate
 from langchain_community.llms import Ollama 
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.embeddings import HuggingFaceBgeEmbeddings
-from langchain_huggingface.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import streamlit as st 
@@ -29,33 +28,33 @@ if select == "Tutor":
     st.title("Master Machine Learning with AI-Tutoring")
     question = st.text_area("Please enter your query or questions to start learning")
 
+    #loading the document 
+    doc = PyPDFLoader('book.pdf')
+    doc = doc.load()
+    print("loading of the document is done")
+
+    #defining the embedding model 
+    embeddings = OllamaEmbeddings(model='mxbai-embed-large:335m')
+    
+    #splitting the data into chunks 
+    splitter = RecursiveCharacterTextSplitter(chunk_size = 50000 , chunk_overlap = 10000)
+    splitter = splitter.split_documents(doc)
+    print("splitting of the document is done")
+
+    #storing the chunked documents as vector embedding in vectorstore 
+    print("embedding and storing process started")
+    
+    db = Chroma.from_documents(splitter,embeddings)
+    print("stored in vector db")
+
+    #defining the lage language model 
+    llm = Ollama(model = 'llama3',temperature = 0.02)
+
+    #creating the retriver for retriving the data from the db
+    retriver = db.as_retriever()
+
     #creating the function definition 
-
     def machine_learning(question):
-
-        #loading the document 
-        doc = PyPDFLoader('book.pdf')
-        doc = doc.load()
-
-        #defining the embedding model 
-        embeddings=HuggingFaceBgeEmbeddings(
-                model_name="BAAI/bge-small-en-v1.5",
-                model_kwargs={'device':'cpu'},
-                encode_kwargs={'normalize_embeddings':True}
-                )
-        
-        #splitting the data into chunks 
-        splitter = RecursiveCharacterTextSplitter(chunk_size = 5000 , chunk_overlap = 1000)
-        splitter = splitter.split_documents(doc)
-
-        #storing the chunked documents as vector embedding in vectorstore 
-        db = Chroma.from_documents(splitter,embeddings)
-
-        #defining the lage language model 
-        llm = Ollama(model = 'llama3',temperature = 0.02)
-
-        #creating the retriver for retriving the data from the db
-        retriver = db.as_retriever()
 
         #creating the prompt template for the model to act as a tutor
         prompter = """   
@@ -112,7 +111,9 @@ if select == "Tutor":
         prompt = prompt_template.format(prompter = prompter)
         chain = prompt | llm |retriver
         response = chain.invoke({'question':question})
+        print("answer is ",response)
         return response['answer']
+    
 
 
     #creating a submit button and the function call
