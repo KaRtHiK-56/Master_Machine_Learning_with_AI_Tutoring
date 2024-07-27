@@ -9,6 +9,8 @@ import streamlit as st
 from streamlit_option_menu import option_menu 
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+from datetime import datetime
+
 
 #creating the frontend of the application using streamlit 
 
@@ -29,17 +31,17 @@ if select == "Tutor":
     st.title("Master Machine Learning with AI-Tutoring")
     question = st.text_area("Please enter your query or questions to start learning")
 
-    #creating the function definition 
-    def machine_learning(question):
+    #creating1st function definition
+    def process():
         #loading the document 
         doc = PyPDFLoader('ml.pdf')
         doc = doc.load()
         print("loading of the document is done")
 
         #splitting the data into chunks 
-        splitter = RecursiveCharacterTextSplitter(chunk_size = 10000 , chunk_overlap = 1000)
+        splitter = RecursiveCharacterTextSplitter(chunk_size = 5000 , chunk_overlap = 1000)
         splitter = splitter.split_documents(doc)
-        print("splitting of the document is done")
+        print("splitting of the document is done",splitter)
 
         #defining the embedding model 
         embeddings = OllamaEmbeddings(model='nomic-embed-text')
@@ -52,9 +54,20 @@ if select == "Tutor":
         #storing the chunked documents as vector embedding in vectorstore 
         print("embedding and storing process started")
 
+        # logging the time 
+        start_time = datetime.now()
+        print("starting time is:",start_time)
+        print("Started to log the time for embedding and storing process")
         db = Chroma.from_documents(splitter,embeddings)
+        end_time = datetime.now()
+        print("ending time is:",end_time)
+        print('Duration: {}'.format(end_time - start_time))
         print("stored in vector db")
+        return db
 
+    #creating the function definition 
+    def machine_learning(question,db):
+    
         #defining the lage language model 
         llm = Ollama(model = 'llama3',temperature = 0.02)
 
@@ -90,7 +103,9 @@ if select == "Tutor":
 
     if submit:
         with st.spinner("Generating Answer...."):
-            st.write(machine_learning(question))
+            call = process()
+            print("call function is executed successfully!")
+            st.write(machine_learning(question,call))
 
 
 
