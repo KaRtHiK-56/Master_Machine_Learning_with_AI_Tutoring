@@ -10,7 +10,7 @@
 6. Implementation Details
     - LangChain
     - Python
-    - Llama 3 Model
+    - Llama 3 
     - Prompt Techniques
 7. Key Features
 8. Use Cases
