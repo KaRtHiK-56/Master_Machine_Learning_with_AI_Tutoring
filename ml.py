@@ -1,69 +1,78 @@
-#importing necessary libararies 
+# importing necessary libararies
 from langchain.prompts import PromptTemplate
-from langchain_community.llms import Ollama 
+from langchain_community.llms import Ollama
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-import streamlit as st 
+import streamlit as st
 from streamlit_option_menu import option_menu
 from datetime import datetime
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 
 
-#creating the frontend of the application using streamlit 
+# creating the frontend of the application using streamlit
 
 with st.sidebar:
     select = option_menu(
-        menu_title = "Menu",
-        options = ['Home','Tutor'],
-        icons = ['house','vector-pen'],
-        default_index = 0, 
-        orientation = 'horizontal',
-
+        menu_title="Menu",
+        options=["Home", "Tutor"],
+        icons=["house", "vector-pen"],
+        default_index=0,
+        orientation="horizontal",
     )
 
-if select == 'Home':
+if select == "Home":
     st.title("Welcome")
 
 if select == "Tutor":
     st.title("Master Machine Learning with AI-Tutoring")
     question = st.text_area("Please enter your query or questions to start learning")
 
-    #creating1st function definition
+    # creating1st function definition
     def process(question):
-        #loading the document 
-        doc = PyPDFLoader('ml.pdf')
+        """
+        The function processes a given question by loading a PDF document, splitting it into chunks,
+        embedding and storing the chunks, utilizing a language model to generate a response based on the
+        question, and providing the answer.
+        
+        :param question: It looks like the code you provided is a Python function that processes a given
+        question related to machine learning. The function loads a PDF document, splits it into chunks,
+        embeds and stores the chunks as vector embeddings, defines a large language model, creates a
+        prompt template for the model to act as a
+        """
+        # loading the document
+        doc = PyPDFLoader("ml.pdf")
         doc = doc.load()
         print("loading of the document is done")
-        #splitting the data into chunks 
-        splitter = RecursiveCharacterTextSplitter(chunk_size = 5000 , chunk_overlap = 1000)
+        # splitting the data into chunks
+        splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=1000)
         splitter = splitter.split_documents(doc)
         print("splitting of the document is done")
-        #defining the embedding model 
-        embeddings = OllamaEmbeddings(model='nomic-embed-text')
-        #embeddings = HuggingFaceEmbeddings(
+        # defining the embedding model
+        embeddings = OllamaEmbeddings(model="nomic-embed-text")
+        # embeddings = HuggingFaceEmbeddings(
         #    model_name = 'nomic-embed-text',
         #    model_kwargs={'device':'cpu'},
         #    encode_kwargs={'normalize_embeddings':True}
-        #)
-        #storing the chunked documents as vector embedding in vectorstore 
+        # )
+        # storing the chunked documents as vector embedding in vectorstore
         print("embedding and storing process started")
-        # logging the time 
+        # logging the time
         start_time = datetime.now()
-        print("starting time is:",start_time)
+        print("starting time is:", start_time)
         print("Started to log the time for embedding and storing process")
-        db = Chroma.from_documents(splitter,embeddings,persist_directory='ml_db')
+        db = Chroma.from_documents(splitter, embeddings, persist_directory="ml_db")
         db.persist()
         end_time = datetime.now()
-        print("ending time is:",end_time)
-        print('Duration: {}'.format(end_time - start_time))
+        print("ending time is:", end_time)
+        print("Duration: {}".format(end_time - start_time))
         print("stored in vector db")
-        #defining the lage language model 
-        llm = Ollama(model = 'llama3',temperature = 0.02)
+        # defining the lage language model
+        llm = Ollama(model="llama3", temperature=0.02)
 
-        #creating the prompt template for the model to act as a tutor
+        # creating the prompt template for the model to act as a tutor
         prompt = """   
                     You are an expert Machine Learning tutor. Your role is to understand and clearly explain any machine learning 
                     concepts or questions asked. Provide detailed answers, real-time examples, and coding examples where applicable. 
@@ -76,21 +85,21 @@ if select == "Tutor":
                     context : {context}
                     question : {question}
         """
-        #creating the prompt template 
+        # creating the prompt template
         prompt = PromptTemplate.from_template(template=prompt)
-        #creating the retriver for retriving the data from the db
+        # creating the retriver for retriving the data from the db
         retriever = db.as_retriever()
-        chains = ({"context": retriever,"question":RunnablePassthrough()}
-                  | prompt
-                  | llm
-                  | StrOutputParser())
-        
+        chains = (
+            {"context": retriever, "question": RunnablePassthrough()}
+            | prompt
+            | llm
+            | StrOutputParser()
+        )
+
         response = chains.invoke(question)
-        print("answer is ",response)
-    
+        print("answer is ", response)
 
-
-    #creating a submit button and the function call
+    # creating a submit button and the function call
 
     submit = st.button("Ask")
 
@@ -98,7 +107,3 @@ if select == "Tutor":
         with st.spinner("Generating Answer...."):
             print("call function is executed successfully!")
             st.write(process(question))
-
-
-
-
